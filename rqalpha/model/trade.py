@@ -15,6 +15,61 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+成交记录模块
+
+本模块定义了成交（Trade）数据结构，用于记录订单的实际成交信息。
+
+核心概念
+--------
+
+- **Trade（成交）**: 一笔实际完成的交易记录
+- **exec_id**: 成交唯一标识符
+- **transaction_cost**: 交易费用（佣金 + 印花税 + 其他费用）
+
+成交与订单的关系
+----------------
+
+一个订单可能产生多笔成交（部分成交的情况）::
+
+    Order (1000股)
+        │
+        ├─→ Trade 1 (300股)
+        ├─→ Trade 2 (400股)
+        └─→ Trade 3 (300股)
+
+成交信息用于：
+- 更新持仓
+- 计算交易费用
+- 记录交易历史
+
+使用方式
+--------
+
+成交信息通常通过事件获取::
+
+    def on_trade(context, event):
+        trade = event.trade
+        print(f"成交: {trade.order_book_id}")
+        print(f"价格: {trade.last_price}")
+        print(f"数量: {trade.last_quantity}")
+        print(f"费用: {trade.transaction_cost}")
+
+或者通过订单查看累计成交::
+
+    order = order_shares('000001.XSHE', 1000)
+    # ... 等待成交 ...
+    print(order.filled_quantity)  # 已成交数量
+    print(order.avg_price)        # 成交均价
+
+注意事项
+--------
+
+- Trade 对象的属性是只读的
+- transaction_cost 包含佣金、印花税等所有费用
+- 期货成交有 close_today_amount 属性表示平今数量
+"""
+
 import time
 from typing import TYPE_CHECKING, Optional
 
@@ -31,6 +86,41 @@ if TYPE_CHECKING:
 
 # TODO: 改成 namedtuple，提升性能
 class Trade(object):
+    """
+    成交对象，记录一笔实际完成的交易
+    
+    成交对象包含了一笔交易的详细信息，包括成交价格、数量、费用等。
+    每当订单被撮合成交时，系统会创建 Trade 对象。
+    
+    Trade 对象通常通过 TRADE 事件获取，不应直接创建。
+    
+    Attributes:
+        exec_id: 成交唯一标识符
+        order_id: 关联的订单 ID
+        order_book_id (str): 合约代码
+        last_price (float): 成交价格
+        last_quantity (int): 成交数量
+        side (SIDE): 买卖方向
+        position_effect (POSITION_EFFECT): 开平方向（期货）
+        commission (float): 佣金
+        tax (float): 印花税
+        transaction_cost (float): 总交易费用
+        datetime (datetime): 成交时间
+        trading_datetime (datetime): 交易日时间
+        
+    Example:
+        >>> # 通过事件获取成交信息
+        >>> def on_trade(context, event):
+        ...     trade = event.trade
+        ...     print(f"成交价: {trade.last_price}")
+        ...     print(f"成交量: {trade.last_quantity}")
+        ...     print(f"费用: {trade.transaction_cost}")
+        
+    Note:
+        - ``transaction_cost = commission + tax + other_fees``
+        - 期货成交有 ``close_today_amount`` 记录平今仓数量
+        - ``frozen_price`` 是下单时冻结资金使用的价格
+    """
 
     __repr__ = property_repr  # type: ignore
 

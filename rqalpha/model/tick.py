@@ -15,6 +15,63 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+Tick 数据模块
+
+本模块定义了 Tick（快照）数据结构，用于表示某一时刻的市场行情快照。
+
+核心概念
+--------
+
+- **Tick（快照）**: 某一时刻的市场行情数据，包含最新价、盘口等信息
+- **盘口**: 买卖双方的挂单价格和数量（通常为5档）
+
+Tick数据字段
+------------
+
+基本字段:
+- **datetime**: 时间戳
+- **last**: 最新成交价
+- **open**: 开盘价
+- **high**: 当日最高价
+- **low**: 当日最低价
+- **prev_close**: 昨收价
+- **volume**: 累计成交量
+- **total_turnover**: 累计成交额
+
+盘口数据:
+- **bids**: 买入报价列表 [买一价, 买二价, ...]
+- **bid_vols**: 买入挂单量列表
+- **asks**: 卖出报价列表 [卖一价, 卖二价, ...]
+- **ask_vols**: 卖出挂单量列表
+
+涨跌停:
+- **limit_up**: 涨停价
+- **limit_down**: 跌停价
+
+期货专用:
+- **open_interest**: 持仓量
+- **prev_settlement**: 昨结算价
+
+使用方式
+--------
+
+在 Tick 级别回测中使用::
+
+    def handle_tick(context, tick):
+        print(f"最新价: {tick.last}")
+        print(f"买一: {tick.bids[0]} x {tick.bid_vols[0]}")
+        print(f"卖一: {tick.asks[0]} x {tick.ask_vols[0]}")
+        print(f"成交量: {tick.volume}")
+
+注意事项
+--------
+
+- Tick 回测需要 Tick 级别的数据支持
+- 某些字段可能不存在，访问时会返回默认值
+- ``isnan`` 可判断数据是否有效
+"""
+
 import datetime
 
 import numpy as np
@@ -23,11 +80,55 @@ from rqalpha.utils.datetime_func import convert_int_to_datetime, convert_ms_int_
 
 
 class TickObject(object):
+    """
+    Tick 快照对象，表示某一时刻的市场行情
+    
+    Tick 数据是最细粒度的行情数据，记录了某一时刻的最新价、盘口等信息。
+    在 Tick 级别回测中，策略通过 ``handle_tick`` 回调函数接收 Tick 数据。
+    
+    Attributes:
+        order_book_id (str): 合约代码
+        datetime (datetime): 时间戳
+        last (float): 最新成交价
+        open (float): 开盘价
+        high (float): 当日最高价
+        low (float): 当日最低价
+        prev_close (float): 昨收价
+        volume (float): 累计成交量
+        total_turnover (float): 累计成交额
+        limit_up (float): 涨停价
+        limit_down (float): 跌停价
+        bids (list): 买入报价列表，bids[0] 为买一价
+        bid_vols (list): 买入挂单量列表
+        asks (list): 卖出报价列表，asks[0] 为卖一价
+        ask_vols (list): 卖出挂单量列表
+        open_interest (float): 持仓量（期货专用）
+        prev_settlement (float): 昨结算价（期货专用）
+        isnan (bool): 数据是否有效
+        
+    Example:
+        >>> def handle_tick(context, tick):
+        ...     # 获取最新价和盘口
+        ...     print(f"最新价: {tick.last}")
+        ...     print(f"买一: {tick.bids[0]} x {tick.bid_vols[0]}")
+        ...     print(f"卖一: {tick.asks[0]} x {tick.ask_vols[0]}")
+        ...     
+        ...     # 计算买卖价差
+        ...     spread = tick.asks[0] - tick.bids[0]
+        ...     print(f"价差: {spread}")
+        
+    Note:
+        - 盘口数据通常为5档，索引从0开始
+        - 某些字段可能不存在，此时返回默认值（如0或空列表）
+        - 当日无成交时，``last`` 返回 ``prev_close``
+    """
     def __init__(self, instrument, tick_dict):
         """
-        Tick 对象
-        :param instrument: Instrument
-        :param tick_dict: dict
+        初始化 Tick 对象
+        
+        Args:
+            instrument: 合约对象
+            tick_dict: Tick 数据字典
         """
         self._instrument = instrument
         self._tick_dict = tick_dict

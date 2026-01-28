@@ -15,6 +15,66 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+运行环境模块
+
+本模块定义了 Environment 类，它是 RQAlpha 的核心服务注册中心，
+采用服务定位器（Service Locator）模式管理各种系统组件。
+
+核心概念
+--------
+
+Environment 是一个单例对象，在整个回测过程中提供对以下服务的访问：
+
+- **DataProxy**: 数据代理，提供行情和合约数据
+- **DataSource**: 底层数据源
+- **PriceBoard**: 价格板，提供最新价格
+- **EventSource**: 事件源，生成时间事件
+- **EventBus**: 事件总线，事件发布订阅
+- **Broker**: 经纪商，处理订单和成交
+- **Portfolio**: 投资组合，管理账户和持仓
+- **Strategy**: 用户策略
+- **Mods**: 已加载的模块
+
+使用方式
+--------
+
+获取 Environment 实例::
+
+    from rqalpha.environment import Environment
+    
+    env = Environment.get_instance()
+    
+    # 访问各种服务
+    data_proxy = env.data_proxy
+    portfolio = env.portfolio
+    
+    # 获取当前时间
+    current_dt = env.calendar_dt
+    trading_dt = env.trading_dt
+    
+    # 获取股票池
+    universe = env.get_universe()
+
+时间管理
+--------
+
+Environment 维护两个时间概念：
+
+- **calendar_dt**: 日历时间，表示当前的实际时间点
+- **trading_dt**: 交易日时间，处理期货夜盘等跨日交易
+
+例如：期货夜盘 23:00 的 calendar_dt 是当天 23:00，
+但 trading_dt 是下一个交易日。
+
+注意事项
+--------
+
+- Environment 是单例，通过 ``get_instance()`` 获取
+- 在系统初始化前调用 ``get_instance()`` 会抛出异常
+- 各服务在初始化过程中通过 ``set_xxx`` 方法注册
+"""
+
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 from itertools import chain
@@ -42,6 +102,47 @@ if TYPE_CHECKING:
 
 
 class Environment(object):
+    """
+    运行环境，RQAlpha 的核心服务注册中心
+    
+    Environment 是一个单例对象，作为整个回测系统的服务定位器，
+    提供对数据、交易、账户等各种核心服务的统一访问入口。
+    
+    所有模块都可以通过 ``Environment.get_instance()`` 获取环境实例，
+    进而访问所需的服务。
+    
+    Attributes:
+        config: 回测配置
+        global_vars: 用户全局变量存储
+        event_bus (EventBus): 事件总线
+        calendar_dt (datetime): 当前日历时间
+        trading_dt (datetime): 当前交易日时间
+        data_proxy (DataProxy): 数据代理
+        data_source (AbstractDataSource): 数据源
+        price_board (AbstractPriceBoard): 价格板
+        event_source (AbstractEventSource): 事件源
+        broker (AbstractBroker): 经纪商
+        portfolio (Portfolio): 投资组合
+        strategy_loader (AbstractStrategyLoader): 策略加载器
+        user_strategy (Strategy): 用户策略
+        mod_dict (dict): 已加载的模块字典
+        
+    Example:
+        >>> env = Environment.get_instance()
+        >>> 
+        >>> # 获取当前时间
+        >>> print(env.trading_dt)
+        >>> 
+        >>> # 获取数据
+        >>> bar = env.get_bar('000001.XSHE')
+        >>> 
+        >>> # 获取账户
+        >>> account = env.get_account('000001.XSHE')
+        
+    Note:
+        - 这是单例类，只能通过 ``get_instance()`` 获取
+        - 在系统初始化完成前调用会抛出 ``EnvironmentNotInitialized``
+    """
     _env: Optional["Environment"] = None
 
     data_proxy: "DataProxy"

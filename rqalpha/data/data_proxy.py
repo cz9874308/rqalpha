@@ -15,6 +15,66 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+数据代理模块
+
+本模块定义了 DataProxy 类，它是 RQAlpha 数据层的统一访问接口，
+整合了数据源（DataSource）和价格板（PriceBoard）的功能。
+
+核心概念
+--------
+
+- **DataProxy**: 数据代理，提供统一的数据访问接口
+- **DataSource**: 底层数据源，提供历史数据
+- **PriceBoard**: 价格板，提供实时/最新价格
+
+DataProxy 的设计采用了外观模式（Facade），将多个数据组件的功能
+整合到一个简洁的接口中。
+
+主要功能
+--------
+
+**合约信息**:
+    - ``instrument(order_book_id)``: 获取合约对象
+    - ``instruments(id_or_symbols)``: 批量获取合约
+    - ``all_instruments(type)``: 获取所有合约
+
+**历史数据**:
+    - ``history_bars()``: 获取历史K线
+    - ``get_bar()``: 获取单根K线
+    - ``fast_history()``: 快速历史数据查询
+
+**实时价格**:
+    - ``get_last_price()``: 获取最新价格
+
+**交易日历**:
+    - ``get_trading_dates()``: 获取交易日列表
+    - ``get_previous_trading_date()``: 获取前一交易日
+    - ``get_next_trading_date()``: 获取下一交易日
+    - ``is_trading_date()``: 判断是否为交易日
+
+**分红除权**:
+    - ``get_dividend()``: 获取分红信息
+    - ``get_split()``: 获取拆股信息
+    - ``get_ex_cum_factor()``: 获取复权因子
+
+使用方式
+--------
+
+DataProxy 通过 Environment 获取::
+
+    env = Environment.get_instance()
+    data_proxy = env.data_proxy
+    
+    # 获取合约信息
+    ins = data_proxy.instrument('000001.XSHE')
+    print(ins.symbol)  # 平安银行
+    
+    # 获取历史数据
+    bars = data_proxy.history_bars('000001.XSHE', 10, '1d', 'close')
+    print(bars.mean())  # 10日均价
+"""
+
 from datetime import datetime, date
 from typing import Union, List, Sequence, Optional, Tuple, Iterable, Dict, Callable
 
@@ -40,6 +100,43 @@ from rqalpha.utils.exception import InstrumentNotFound
 from .instruments_mixin import InstrumentsMixin
 
 class DataProxy(TradingDatesMixin, InstrumentsMixin):
+    """
+    数据代理，RQAlpha 数据层的统一访问接口
+    
+    DataProxy 整合了 DataSource（历史数据）和 PriceBoard（实时价格）的功能，
+    同时继承了 TradingDatesMixin（交易日历）和 InstrumentsMixin（合约信息）的方法。
+    
+    这是策略和系统模块访问数据的主要入口。
+    
+    Attributes:
+        _data_source (AbstractDataSource): 底层数据源
+        _price_board (AbstractPriceBoard): 价格板
+        
+    继承的功能:
+        - TradingDatesMixin: 交易日历相关方法
+        - InstrumentsMixin: 合约信息相关方法
+        
+    Example:
+        >>> data_proxy = env.data_proxy
+        >>> 
+        >>> # 获取合约
+        >>> ins = data_proxy.instrument('000001.XSHE')
+        >>> 
+        >>> # 获取历史数据
+        >>> close_prices = data_proxy.history_bars(
+        ...     '000001.XSHE', 10, '1d', 'close'
+        ... )
+        >>> 
+        >>> # 获取最新价
+        >>> last_price = data_proxy.get_last_price('000001.XSHE')
+        >>> 
+        >>> # 交易日历
+        >>> prev_date = data_proxy.get_previous_trading_date(today)
+        
+    Note:
+        - 大部分方法会自动处理 order_book_id 和 Instrument 对象的转换
+        - 未定义的属性访问会代理到 _data_source
+    """
     def __init__(self, data_source: AbstractDataSource, price_board: AbstractPriceBoard):
         self._data_source = data_source
         self._price_board = price_board

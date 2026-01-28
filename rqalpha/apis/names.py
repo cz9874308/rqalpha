@@ -12,6 +12,46 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+API 常量定义模块
+
+本模块定义了 RQAlpha API 中使用的各种常量和有效值列表，
+用于参数验证和数据字段校验。
+
+常量分类
+--------
+
+**历史数据字段 (VALID_HISTORY_FIELDS)**:
+    K 线数据支持的字段名称，如 open, close, high, low 等
+
+**期限结构 (VALID_TENORS)**:
+    债券/利率曲线支持的期限，如 1M, 1Y, 10Y 等
+
+**合约类型 (VALID_INSTRUMENT_TYPES)**:
+    支持的合约类型列表，如 CS, Future, ETF 等
+
+**融资融券字段 (VALID_MARGIN_FIELDS)**:
+    融资融券数据支持的字段，如 margin_balance 等
+
+**股本字段 (VALID_SHARE_FIELDS)**:
+    股本数据支持的字段，如 total, circulation_a 等
+
+**换手率字段 (VALID_TURNOVER_FIELDS)**:
+    换手率数据支持的字段，如 today, week, month 等
+
+**陆股通字段 (VALID_STOCK_CONNECT_FIELDS)**:
+    陆股通数据支持的字段
+
+**业绩快报字段 (VALID_CURRENT_PERFORMANCE_FIELDS)**:
+    业绩快报数据支持的字段
+
+注意事项
+--------
+
+- 这些常量主要供内部参数验证使用
+- 策略开发者通常不需要直接使用这些常量
+"""
+
 from itertools import chain
 
 from rqalpha.const import INSTRUMENT_TYPE

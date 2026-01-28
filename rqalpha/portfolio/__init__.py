@@ -15,6 +15,72 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+投资组合模块
+
+本模块定义了 RQAlpha 的投资组合（Portfolio）和账户（Account）体系，
+用于管理策略的资金和持仓。
+
+核心概念
+--------
+
+- **Portfolio（投资组合）**: 策略所有账户的集合
+- **Account（账户）**: 单一账户类型的资金和持仓管理
+- **Position（持仓）**: 单个合约的持仓信息
+
+层级结构
+--------
+
+投资组合的层级关系::
+
+    Portfolio（投资组合）
+        ├─ Stock Account（股票账户）
+        │     ├─ Position（持仓1）
+        │     ├─ Position（持仓2）
+        │     └─ ...
+        └─ Future Account（期货账户）
+              ├─ Position（持仓1）
+              └─ ...
+
+主要属性
+--------
+
+**Portfolio 属性**:
+    - ``total_value``: 总权益
+    - ``unit_net_value``: 单位净值
+    - ``daily_pnl``: 当日盈亏
+    - ``daily_returns``: 当日收益率
+    - ``total_returns``: 累计收益率
+    - ``positions``: 持仓字典
+    - ``cash``: 可用资金
+
+**Account 属性**:
+    - ``total_value``: 账户总权益
+    - ``cash``: 可用资金
+    - ``frozen_cash``: 冻结资金
+    - ``market_value``: 市值
+    - ``positions``: 持仓字典
+
+使用方式
+--------
+
+通过 context 访问投资组合::
+
+    def handle_bar(context, bar_dict):
+        # 访问投资组合
+        portfolio = context.portfolio
+        print(f"总权益: {portfolio.total_value}")
+        print(f"当日收益: {portfolio.daily_returns:.2%}")
+        
+        # 访问持仓
+        for pos in portfolio.positions.values():
+            print(f"{pos.order_book_id}: {pos.quantity}股")
+        
+        # 访问股票账户
+        stock_account = context.stock_account
+        print(f"可用资金: {stock_account.cash}")
+"""
+
 from itertools import chain
 from datetime import date
 from collections.abc import Mapping

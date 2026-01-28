@@ -15,6 +15,40 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+账户模块实现
+
+本模块实现了 AccountMod 类，是 sys_accounts 模块的主体。
+
+核心职责
+--------
+
+AccountMod 在启动时执行以下任务：
+
+1. **配置持仓模型**: 设置 StockPosition 的各种参数（T+1、分红等）
+2. **注册验证器**: 注册持仓验证器和成分股验证器
+3. **注入交易 API**: 根据账户类型注入股票或期货的交易 API
+
+持仓验证
+--------
+
+持仓验证器确保：
+
+- 股票卖出不超过可卖数量
+- 期货平仓不超过可平数量
+- 融资买入股票在融资股票池内
+
+API 注入机制
+------------
+
+API 注入通过动态导入实现：
+
+- 股票账户存在时，导入 api_stock 模块
+- 期货账户存在时，导入 api_future 模块
+
+这些模块在导入时会自动注册 API 函数。
+"""
+
 from typing import Any
 
 from rqalpha.utils import INST_TYPE_IN_STOCK_ACCOUNT

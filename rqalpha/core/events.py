@@ -12,11 +12,96 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+事件系统模块
+
+本模块实现了 RQAlpha 的事件驱动机制，是整个回测引擎的通信基础。
+
+核心概念
+--------
+
+- **Event（事件）**: 携带事件类型和相关数据的对象
+- **EventBus（事件总线）**: 负责事件的发布和订阅
+- **EVENT（事件类型）**: 定义系统支持的所有事件类型
+
+事件分类
+--------
+
+**生命周期事件**:
+    - ``POST_SYSTEM_INIT``: 系统初始化完成
+    - ``POST_USER_INIT``: 用户 init 函数执行完成
+    - ``BEFORE_STRATEGY_RUN``: 策略运行前
+    - ``POST_STRATEGY_RUN``: 策略运行完成后
+
+**交易日事件**:
+    - ``BEFORE_TRADING``: 开盘前（触发 before_trading）
+    - ``OPEN_AUCTION``: 集合竞价（触发 open_auction）
+    - ``BAR``: K线事件（触发 handle_bar）
+    - ``TICK``: Tick事件（触发 handle_tick）
+    - ``AFTER_TRADING``: 收盘后（触发 after_trading）
+    - ``SETTLEMENT``: 结算事件
+
+**订单事件**:
+    - ``ORDER_PENDING_NEW``: 订单创建中
+    - ``ORDER_CREATION_PASS``: 订单创建成功
+    - ``ORDER_CREATION_REJECT``: 订单创建失败
+    - ``ORDER_CANCELLATION_PASS``: 撤单成功
+    - ``TRADE``: 成交事件
+
+事件流程
+--------
+
+每个交易日的事件触发顺序::
+
+    PRE_BEFORE_TRADING → BEFORE_TRADING → POST_BEFORE_TRADING
+                                ↓
+    PRE_OPEN_AUCTION → OPEN_AUCTION → POST_OPEN_AUCTION
+                                ↓
+    PRE_BAR → BAR → POST_BAR  (循环多次)
+                                ↓
+    PRE_AFTER_TRADING → AFTER_TRADING → POST_AFTER_TRADING
+                                ↓
+    PRE_SETTLEMENT → SETTLEMENT → POST_SETTLEMENT
+
+使用方式
+--------
+
+订阅事件::
+
+    def my_handler(event):
+        print(f"收到事件: {event.event_type}")
+    
+    env.event_bus.add_listener(EVENT.TRADE, my_handler)
+
+发布事件::
+
+    event = Event(EVENT.TRADE, trade=trade, order=order)
+    env.event_bus.publish_event(event)
+"""
+
 from enum import Enum
 from collections import defaultdict
 
 
 class Event(object):
+    """
+    事件对象，承载事件类型和相关数据
+    
+    Event 是 RQAlpha 事件系统中传递信息的载体。它包含一个事件类型
+    和任意数量的关键字参数，这些参数作为事件的附加数据。
+    
+    Attributes:
+        event_type (EVENT): 事件类型
+        **kwargs: 事件携带的数据，作为对象属性访问
+        
+    Example:
+        >>> # 创建一个成交事件
+        >>> event = Event(EVENT.TRADE, trade=trade_obj, order=order_obj)
+        >>> event.event_type
+        EVENT.TRADE
+        >>> event.trade  # 访问附加数据
+        <Trade object>
+    """
     def __init__(self, event_type, **kwargs):
         self.__dict__ = kwargs
         self.event_type = event_type
@@ -26,6 +111,29 @@ class Event(object):
 
 
 class EventBus(object):
+    """
+    事件总线，负责事件的发布和订阅
+    
+    EventBus 实现了观察者模式，允许各个模块订阅感兴趣的事件，
+    并在事件发生时通知所有订阅者。
+    
+    事件处理分为两类：
+    - 系统监听器：优先执行，可以阻止事件继续传播
+    - 用户监听器：后执行，不能阻止事件传播
+    
+    Example:
+        >>> event_bus = EventBus()
+        >>> 
+        >>> def on_trade(event):
+        ...     print(f"成交: {event.trade}")
+        >>> 
+        >>> event_bus.add_listener(EVENT.TRADE, on_trade)
+        >>> event_bus.publish_event(Event(EVENT.TRADE, trade=my_trade))
+        
+    Note:
+        - 系统监听器返回 True 可以阻止事件继续传播
+        - 不应将 Order/Trade 等可能被回收的对象的绑定方法注册为监听器
+    """
     def __init__(self):
         self._listeners = defaultdict(list)
         self._user_listeners = defaultdict(list)

@@ -15,6 +15,71 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+模块（Mod）管理系统
+
+本模块提供了 RQAlpha 的 Mod 插件系统，支持通过 Mod 扩展系统功能。
+
+核心概念
+--------
+
+- **Mod（模块）**: 实现 AbstractMod 接口的插件
+- **ModHandler**: Mod 的加载和生命周期管理器
+- **系统 Mod**: RQAlpha 内置的核心功能模块
+
+Mod 生命周期
+------------
+
+1. **加载**: set_env 时导入 Mod 模块，创建 Mod 实例
+2. **启动**: start_up 时初始化 Mod，注册事件监听等
+3. **销毁**: tear_down 时清理资源，收集结果
+
+系统内置 Mod
+------------
+
+- ``sys_accounts``: 账户和交易 API
+- ``sys_simulation``: 模拟撮合
+- ``sys_analyser``: 结果分析
+- ``sys_risk``: 风控验证
+- ``sys_progress``: 进度显示
+- ``sys_transaction_cost``: 交易费用
+- ``sys_scheduler``: 定时任务
+
+Mod 加载顺序
+------------
+
+1. 按配置文件中的顺序加载
+2. 按 priority 排序执行 start_up（默认 100）
+3. 按逆序执行 tear_down
+
+自定义 Mod
+----------
+
+创建自定义 Mod 的步骤：
+
+1. 创建 Python 包，命名为 ``rqalpha_mod_xxx``
+2. 实现 ``__config__`` 配置和 ``load_mod()`` 函数
+3. 实现 AbstractMod 接口
+4. 在配置文件中启用::
+
+    mod:
+      xxx:
+        enabled: true
+
+使用方式
+--------
+
+Mod 配置示例::
+
+    mod:
+      sys_accounts:
+        enabled: true
+        stock_t1: true
+      sys_simulation:
+        enabled: true
+        slippage: 0.001
+"""
+
 import sys
 import copy
 import typing

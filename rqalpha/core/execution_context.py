@@ -15,6 +15,64 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+执行上下文模块
+
+本模块定义了 ExecutionContext 类，用于跟踪和管理代码执行所处的阶段，
+并提供 API 调用的阶段限制功能。
+
+核心概念
+--------
+
+- **ExecutionContext（执行上下文）**: 记录当前代码执行所处的阶段
+- **EXECUTION_PHASE（执行阶段）**: 定义各种执行阶段的枚举
+- **ContextStack**: 上下文栈，支持嵌套的执行上下文
+
+执行阶段
+--------
+
+RQAlpha 定义了以下执行阶段：
+
+- ``ON_INIT``: 策略初始化阶段
+- ``BEFORE_TRADING``: 开盘前阶段
+- ``OPEN_AUCTION``: 集合竞价阶段
+- ``ON_BAR``: K线处理阶段
+- ``ON_TICK``: Tick处理阶段
+- ``AFTER_TRADING``: 收盘后阶段
+- ``SCHEDULED``: 定时任务阶段
+- ``GLOBAL``: 全局阶段
+
+API 阶段限制
+------------
+
+某些 API 只能在特定阶段调用，例如：
+
+- 下单 API 不能在 ``BEFORE_TRADING`` 阶段调用
+- 某些数据查询 API 不能在 ``ON_BAR`` 阶段调用
+
+使用 ``@ExecutionContext.enforce_phase`` 装饰器实现限制::
+
+    @ExecutionContext.enforce_phase(
+        EXECUTION_PHASE.ON_BAR,
+        EXECUTION_PHASE.ON_TICK,
+    )
+    def order_shares(order_book_id, amount):
+        ...
+
+使用方式
+--------
+
+设置执行上下文（通常由系统自动处理）::
+
+    with ExecutionContext(EXECUTION_PHASE.ON_BAR):
+        # 在这个块中，当前阶段是 ON_BAR
+        handle_bar(context, bar_dict)
+
+获取当前阶段::
+
+    current_phase = ExecutionContext.phase()
+"""
+
 from typing import Callable
 from functools import wraps
 from contextlib import contextmanager

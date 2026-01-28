@@ -15,6 +15,60 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+事件执行器模块
+
+本模块定义了 Executor 类，它是 RQAlpha 回测引擎的核心驱动器，
+负责从事件源获取事件并分发到事件总线。
+
+核心概念
+--------
+
+- **Executor（执行器）**: 驱动整个回测流程的引擎
+- **事件分割**: 将主事件拆分为 PRE/MAIN/POST 三个阶段
+
+执行流程
+--------
+
+Executor 的工作流程::
+
+    EventSource.events()  →  Executor.run()  →  EventBus.publish_event()
+           ↑                       ↓
+        生成事件              处理并分发事件
+
+对于每个交易日，事件处理顺序为：
+
+1. BEFORE_TRADING - 开盘前
+2. OPEN_AUCTION - 集合竞价（可选）
+3. BAR/TICK - 行情事件（循环）
+4. AFTER_TRADING - 收盘后
+5. SETTLEMENT - 结算（交易日结束）
+
+事件拆分
+--------
+
+每个主事件会被拆分为三个阶段事件：
+
+- PRE_xxx: 事件前，供系统模块准备工作
+- xxx: 主事件，触发用户策略
+- POST_xxx: 事件后，供系统模块收尾工作
+
+例如 BAR 事件会触发：PRE_BAR → BAR → POST_BAR
+
+状态管理
+--------
+
+Executor 维护的状态用于断点续跑：
+
+- ``_last_before_trading``: 上一次触发 BEFORE_TRADING 的日期
+
+注意事项
+--------
+
+- Executor 确保每个交易日只触发一次 BEFORE_TRADING
+- 结算事件在新交易日开始前触发（而非当日结束后）
+"""
+
 from copy import copy
 from datetime import datetime
 
@@ -24,6 +78,33 @@ from rqalpha.utils.logger import system_log
 
 
 class Executor(object):
+    """
+    事件执行器，驱动回测流程的核心引擎
+    
+    Executor 负责从 EventSource 获取时间事件，并将它们分发到 EventBus。
+    它是整个回测系统的"心脏"，驱动时间前进和事件触发。
+    
+    主要职责：
+    
+    1. 消费 EventSource 生成的事件
+    2. 确保正确的事件触发顺序
+    3. 将事件拆分为 PRE/MAIN/POST 三阶段
+    4. 管理 BEFORE_TRADING 和 SETTLEMENT 的触发时机
+    5. 维护状态以支持断点续跑
+    
+    Attributes:
+        _env (Environment): 运行环境
+        _last_before_trading (date): 上次触发 BEFORE_TRADING 的日期
+        
+    Example:
+        >>> executor = Executor(env)
+        >>> executor.run(bar_dict)  # 开始回测
+        
+    Note:
+        - 每个交易日只触发一次 BEFORE_TRADING
+        - SETTLEMENT 在新交易日的 BEFORE_TRADING 之前触发
+        - 回测结束后会触发最后一天的 SETTLEMENT
+    """
     def __init__(self, env):
         self._env = env
         self._last_before_trading = None

@@ -15,6 +15,72 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+持仓模块
+
+本模块定义了 Position 类，用于表示单个合约的持仓信息。
+
+核心概念
+--------
+
+- **Position（持仓）**: 单个合约在某个方向上的持仓
+- **方向**: 多头（LONG）或空头（SHORT）
+- **持仓队列**: 用于跟踪持仓成本和可卖数量
+
+持仓类型
+--------
+
+不同类型的合约使用不同的 Position 子类：
+
+- **StockPosition**: 股票持仓（包括ETF、LOF等）
+- **FuturePosition**: 期货持仓
+- **OptionPosition**: 期权持仓
+
+通过元类自动注册，创建 Position 时自动选择正确的子类。
+
+主要属性
+--------
+
+**数量相关**:
+    - ``quantity``: 当前持仓数量
+    - ``sellable``: 可卖数量（T+1 限制）
+    - ``closable``: 可平数量（期货专用）
+
+**价格相关**:
+    - ``avg_price``: 持仓均价
+    - ``last_price``: 最新价格
+    - ``prev_close``: 昨收价
+
+**市值和盈亏**:
+    - ``market_value``: 持仓市值
+    - ``trading_pnl``: 交易盈亏
+    - ``position_pnl``: 持仓盈亏（浮动盈亏）
+    - ``pnl``: 总盈亏
+
+持仓队列
+--------
+
+Position 使用队列跟踪每笔买入的成本和日期：
+
+- 用于计算 T+1 限制下的可卖数量
+- 用于期货平今/平昨的成本计算
+- 支持 FIFO（先进先出）结算方式
+
+使用方式
+--------
+
+通过 Account 或 Portfolio 访问::
+
+    # 获取单个持仓
+    pos = context.portfolio.positions['000001.XSHE']
+    print(f"持仓数量: {pos.quantity}")
+    print(f"持仓市值: {pos.market_value}")
+    print(f"浮动盈亏: {pos.position_pnl}")
+    
+    # 获取可卖数量
+    print(f"可卖数量: {pos.sellable}")
+"""
+
 from collections import UserDict, deque
 from datetime import date
 from decimal import Decimal

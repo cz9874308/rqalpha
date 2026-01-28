@@ -15,6 +15,65 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+K线数据模块
+
+本模块定义了 K 线（Bar）相关的数据结构，用于表示一个时间周期内的行情数据。
+
+核心概念
+--------
+
+- **Bar（K线）**: 一个时间周期内的行情汇总，包含开高低收、成交量等
+- **BarMap**: K 线字典，按合约代码索引当前周期的所有 K 线
+- **PartialBarObject**: 部分 K 线数据，用于集合竞价阶段
+
+K线数据字段
+-----------
+
+- **datetime**: 时间戳
+- **open**: 开盘价
+- **high**: 最高价
+- **low**: 最低价
+- **close**: 收盘价
+- **volume**: 成交量
+- **total_turnover**: 成交额
+- **limit_up**: 涨停价
+- **limit_down**: 跌停价
+
+期货专用字段:
+
+- **open_interest**: 持仓量
+- **settlement**: 结算价
+- **prev_settlement**: 昨结算价
+
+使用方式
+--------
+
+在策略中通过 ``bar_dict`` 获取 K 线数据::
+
+    def handle_bar(context, bar_dict):
+        # 获取平安银行的 K 线
+        bar = bar_dict['000001.XSHE']
+        
+        # 访问 K 线属性
+        print(bar.open)    # 开盘价
+        print(bar.close)   # 收盘价
+        print(bar.volume)  # 成交量
+        
+        # 计算移动平均
+        ma5 = bar.mavg(5, '1d')  # 5日均价
+        
+        # 计算 VWAP
+        vwap = bar.vwap(10, '1d')  # 10日VWAP
+
+注意事项
+--------
+
+- 停牌的股票 K 线数据为 NaN，可通过 ``bar.isnan`` 判断
+- ``bar.suspended`` 可判断是否停牌
+- K 线对象的属性使用了缓存，重复访问效率较高
+"""
+
 import six
 from datetime import datetime
 import numpy as np
@@ -37,6 +96,28 @@ NANDict = {i: np.nan for i in NAMES}
 
 
 class PartialBarObject(metaclass=PropertyReprMeta):
+    """
+    部分 K 线对象，用于集合竞价阶段
+    
+    在集合竞价阶段（如开盘前），完整的 K 线数据尚未形成，此时使用
+    PartialBarObject 提供已有的行情数据。
+    
+    与完整 K 线相比，部分 K 线缺少收盘价（close）、最高价（high）、
+    最低价（low）等数据。
+    
+    Attributes:
+        order_book_id (str): 合约代码
+        datetime (datetime): 时间戳
+        open (float): 开盘价（集合竞价成交价）
+        last (float): 最新价
+        volume (float): 成交量
+        limit_up (float): 涨停价
+        limit_down (float): 跌停价
+        
+    Note:
+        - 主要在 ``open_auction`` 回调函数中使用
+        - 通过 ``bar_dict`` 在集合竞价阶段获取
+    """
     # 用于 open_auction
     __repr_properties__ = (
         "order_book_id", "datetime", "open", "limit_up", "limit_down", "last"
@@ -154,6 +235,51 @@ class PartialBarObject(metaclass=PropertyReprMeta):
 
 
 class BarObject(PartialBarObject):
+    """
+    K 线对象，表示一个时间周期内的完整行情数据
+    
+    K 线（Bar）是技术分析的基础数据单元，记录了一个时间周期内的
+    开盘价、最高价、最低价、收盘价及成交量等信息。
+    
+    K 线对象通过 ``bar_dict`` 获取，不应直接创建。
+    
+    Attributes:
+        order_book_id (str): 合约代码
+        symbol (str): 合约简称
+        datetime (datetime): 时间戳
+        open (float): 开盘价
+        high (float): 最高价
+        low (float): 最低价
+        close (float): 收盘价
+        last (float): 最新价（等于收盘价）
+        volume (float): 成交量
+        total_turnover (float): 成交额
+        limit_up (float): 涨停价
+        limit_down (float): 跌停价
+        prev_close (float): 昨收价
+        is_trading (bool): 当日是否有成交
+        suspended (bool): 是否停牌
+        isnan (bool): 数据是否为空
+        
+    期货专用属性:
+        open_interest (float): 持仓量
+        settlement (float): 结算价
+        prev_settlement (float): 昨结算价
+        basis_spread (float): 期现价差
+        
+    Example:
+        >>> bar = bar_dict['000001.XSHE']
+        >>> print(f"开: {bar.open} 高: {bar.high} 低: {bar.low} 收: {bar.close}")
+        >>> print(f"成交量: {bar.volume}")
+        >>> 
+        >>> # 计算技术指标
+        >>> ma5 = bar.mavg(5, '1d')   # 5日均价
+        >>> vwap = bar.vwap(10, '1d')  # 10日VWAP
+        
+    Note:
+        - 停牌股票的 K 线数据为 NaN，``isnan`` 为 True
+        - ``mavg`` 和 ``vwap`` 方法可直接计算移动平均和VWAP
+    """
     __repr_properties__ = (
         "order_book_id", "datetime", "open", "close", "high", "low", "limit_up", "limit_down"
     )
@@ -320,6 +446,35 @@ class BarObject(PartialBarObject):
 
 
 class BarMap(object):
+    """
+    K 线字典，提供当前周期所有合约的 K 线数据访问
+    
+    BarMap 是策略中访问行情数据的主要入口，在 ``handle_bar`` 回调函数中
+    作为 ``bar_dict`` 参数传入。它提供了类似字典的接口，可以通过合约代码
+    获取对应的 K 线数据。
+    
+    BarMap 的数据范围是当前股票池（universe）中的所有合约。
+    
+    Example:
+        >>> def handle_bar(context, bar_dict):
+        ...     # 通过合约代码获取 K 线
+        ...     bar = bar_dict['000001.XSHE']
+        ...     
+        ...     # 遍历所有合约
+        ...     for order_book_id in bar_dict.keys():
+        ...         bar = bar_dict[order_book_id]
+        ...         print(f"{order_book_id}: {bar.close}")
+        ...     
+        ...     # 检查合约是否在股票池中
+        ...     if '000001.XSHE' in bar_dict:
+        ...         print("平安银行在股票池中")
+        
+    Note:
+        - 只能访问股票池（universe）中的合约
+        - 访问不存在的合约会抛出 KeyError
+        - K 线数据会被缓存，重复访问效率较高
+        - 在集合竞价阶段返回 PartialBarObject
+    """
     def __init__(self, data_proxy, frequency):
         self._dt = None
         self._data_proxy = data_proxy

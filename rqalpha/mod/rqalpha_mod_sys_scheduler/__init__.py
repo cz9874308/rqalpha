@@ -13,6 +13,53 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+定时任务模块（sys_scheduler）
+
+本模块是 RQAlpha 的内置 Mod，提供定时任务调度功能。
+
+核心功能
+--------
+
+支持在策略中设置定时执行的任务：
+
+- **周期性任务**: 每日、每周、每月执行
+- **指定时间任务**: 在特定时间点执行
+
+Scheduler API
+-------------
+
+本模块注入以下 API::
+
+    scheduler.run_daily(func, time_rule)
+    scheduler.run_weekly(func, weekday, time_rule)
+    scheduler.run_monthly(func, tradingday, time_rule)
+
+Time Rule（时间规则）
+---------------------
+
+可用的时间规则：
+
+- ``market_open(hour, minute)``: 开盘后指定时间
+- ``market_close(hour, minute)``: 收盘前指定时间
+- ``physical_time(hour, minute, second)``: 指定物理时间
+
+使用示例
+--------
+
+::
+
+    def init(context):
+        # 每日开盘后30分钟执行
+        scheduler.run_daily(rebalance, time_rule=market_open(minute=30))
+        
+        # 每周一开盘执行
+        scheduler.run_weekly(weekly_check, weekday=1, time_rule=market_open())
+        
+        # 每月第一个交易日收盘前执行
+        scheduler.run_monthly(monthly_report, tradingday=1, time_rule=market_close())
+"""
+
 
 def load_mod():
     from .mod import SchedulerMod

@@ -12,6 +12,51 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+策略 API 聚合模块
+
+本模块聚合了 RQAlpha 提供给策略使用的所有 API 函数。
+
+API 分类
+--------
+
+**基础 API (api_base)**:
+    通用交易和数据 API，如 ``order_shares``, ``history_bars`` 等
+
+**股票 API (api_stock)**:
+    股票特有的交易 API，如 ``order_lots`` 等
+
+**期货 API (api_future)**:
+    期货特有的交易 API，如 ``buy_open``, ``sell_close`` 等
+
+**数据 API (api_rqdatac)**:
+    RQDatac 数据查询 API
+
+使用方式
+--------
+
+在策略中导入 API::
+
+    from rqalpha.api import *
+    
+    def init(context):
+        context.s1 = '000001.XSHE'
+    
+    def handle_bar(context, bar_dict):
+        order_shares(context.s1, 1000)
+
+或者选择性导入::
+
+    from rqalpha.apis import order_shares, history_bars
+    
+注意事项
+--------
+
+- 大部分 API 只能在特定的执行阶段调用
+- 某些 API 需要启用相应的 Mod 才能使用
+- 使用 ``from rqalpha.api import *`` 可导入所有可用 API
+"""
+
 from rqalpha.apis.api_abstract import *
 from rqalpha.apis.api_base import *
 from rqalpha.apis.api_rqdatac import *

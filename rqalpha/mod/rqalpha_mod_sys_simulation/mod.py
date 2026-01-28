@@ -12,6 +12,36 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+模拟撮合模块实现
+
+本模块实现了 SimulationMod 类，是 sys_simulation 模块的主体。
+
+核心职责
+--------
+
+SimulationMod 在启动时执行以下任务：
+
+1. **验证配置**: 检查撮合类型与回测频率是否兼容
+2. **设置 Broker**: 根据配置选择 SimulationBroker 或 SignalBroker
+3. **设置 EventSource**: 创建 SimulationEventSource 生成时间事件
+4. **注册验证器**: 注册订单样式验证器
+
+运行模式
+--------
+
+- **普通模式**: 使用 SimulationBroker 进行订单撮合
+- **信号模式**: 使用 SignalBroker，订单直接成交
+
+撮合类型适配
+------------
+
+模块会根据回测频率自动选择合适的撮合类型：
+
+- 日回测: current_bar（不支持 next_bar）
+- 分钟回测: current_bar / next_bar / vwap
+- Tick回测: last / best_own / best_counterparty / counterparty_offer
+"""
 
 import six
 from rqalpha.core.events import EVENT

@@ -12,6 +12,45 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+进度显示模块（sys_progress）
+
+本模块是 RQAlpha 的内置 Mod，提供回测进度条显示功能。
+
+核心功能
+--------
+
+在命令行/终端显示回测进度条，包括：
+
+- 当前进度百分比
+- 已完成的交易日数
+- 预估剩余时间
+
+配置选项
+--------
+
+- ``show``: 是否显示进度条（默认 False）
+
+命令行参数
+----------
+
+- ``--progress``: 显示进度条
+
+使用方式
+--------
+
+命令行::
+
+    rqalpha run -f strategy.py --progress
+
+配置文件::
+
+    mod:
+      sys_progress:
+        enabled: true
+        show: true
+"""
+
 import click
 from rqalpha import cli
 

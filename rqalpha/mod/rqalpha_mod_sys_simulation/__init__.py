@@ -12,6 +12,59 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+模拟撮合模块（sys_simulation）
+
+本模块是 RQAlpha 的核心内置 Mod，提供回测时的订单撮合和事件源功能。
+
+核心功能
+--------
+
+1. **事件源**: 生成回测所需的时间事件（交易日、K线、Tick等）
+2. **订单撮合**: 模拟真实市场的订单成交过程
+3. **滑点模型**: 模拟市场冲击成本
+4. **成交量限制**: 限制单次成交不超过市场容量
+
+撮合方式
+--------
+
+**日/分钟回测**:
+    - ``current_bar``: 以当前 Bar 收盘价撮合
+    - ``next_bar``: 以下一个 Bar 开盘价撮合（仅分钟）
+    - ``vwap``: 以成交量加权平均价撮合
+
+**Tick 回测**:
+    - ``last``: 以最新价撮合
+    - ``best_own``: 以己方最优价撮合
+    - ``best_counterparty``: 以对手方最优价撮合
+    - ``counterparty_offer``: 逐档撮合
+
+滑点模型
+--------
+
+- ``PriceRatioSlippage``: 按价格比例设置滑点
+- ``TickSizeSlippage``: 按跳数设置滑点
+
+配置选项
+--------
+
+- ``signal``: 信号模式，订单直接成交不撮合
+- ``matching_type``: 撮合方式
+- ``price_limit``: 涨跌停限制
+- ``volume_limit``: 成交量限制
+- ``volume_percent``: 成交量比例上限
+- ``slippage_model``: 滑点模型
+- ``slippage``: 滑点值
+- ``inactive_limit``: 无成交限制
+
+命令行参数
+----------
+
+- ``--signal``: 开启信号模式
+- ``-sp, --slippage``: 设置滑点
+- ``-mt, --matching-type``: 设置撮合方式
+"""
+
 import click
 
 from rqalpha import cli

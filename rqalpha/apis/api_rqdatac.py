@@ -12,6 +12,63 @@
 #         未经米筐科技授权，任何个人不得出于任何商业目的使用本软件（包括但不限于向第三方提供、销售、出租、出借、转让本软件、本软件的衍生产品、引用或借鉴了本软件功能或源代码的产品或服务），任何法人或其他组织不得出于任何目的使用本软件，否则米筐科技有权追究相应的知识产权侵权责任。
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
+
+"""
+RQDatac 数据查询 API 模块
+
+本模块提供了丰富的金融数据查询 API，底层依赖 RQDatac 数据服务。
+这些 API 允许策略在回测过程中获取历史数据、财务数据、行业分类等信息。
+
+数据类型
+--------
+
+**行情数据**:
+    - ``get_price``: 获取历史行情数据
+    - ``get_split``: 获取拆分除权信息
+
+**成分股数据**:
+    - ``index_components``: 获取指数成分股
+    - ``index_weights``: 获取指数权重
+    - ``concept``: 获取概念股列表
+    - ``get_industry``: 获取行业成分股
+
+**股票数据**:
+    - ``get_shares``: 获取股本信息
+    - ``get_turnover_rate``: 获取换手率
+    - ``get_price_change_rate``: 获取涨跌幅
+    - ``get_securities_margin``: 获取融资融券信息
+
+**财务数据**:
+    - ``get_fundamentals``: 获取基本面数据（已废弃）
+    - ``get_pit_financials``: 获取财务数据
+    - ``get_pit_financials_ex``: 获取扩展财务数据
+    - ``current_performance``: 获取业绩快报
+
+**期货数据**:
+    - ``get_dominant_future``: 获取主力合约
+    - ``futures.get_dominant``: 获取主力合约
+    - ``futures.get_dominant_price``: 获取主力合约行情（支持复权）
+    - ``futures.get_member_rank``: 获取会员持仓排名
+    - ``futures.get_warehouse_stocks``: 获取仓单数据
+
+**因子数据**:
+    - ``get_factor``: 获取因子数据
+
+使用限制
+--------
+
+- 数据查询的截止日期不能超过当前回测日期
+- 某些 API 仅在特定执行阶段可用
+- 需要安装并配置 rqdatac 包才能使用
+
+注意事项
+--------
+
+- 所有日期参数支持字符串（如 '2020-01-01'）和 date 对象
+- 返回的 DataFrame 结构可能因参数不同而变化
+- 建议使用 ``expect_df=True`` 获取一致的 DataFrame 返回格式
+"""
+
 import datetime
 from functools import lru_cache
 from typing import Union, Optional, Iterable, List

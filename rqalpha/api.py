@@ -12,6 +12,49 @@
 #         未经米筐科技授权，任何个人不得出于任何商业目的使用本软件（包括但不限于向第三方提供、销售、出租、出借、转让本软件、本软件的衍生产品、引用或借鉴了本软件功能或源代码的产品或服务），任何法人或其他组织不得出于任何目的使用本软件，否则米筐科技有权追究相应的知识产权侵权责任。
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
+
+"""
+API 注册与导出模块
+
+本模块提供了 RQAlpha API 的注册和导出机制，是策略 API 的基础设施。
+
+核心概念
+--------
+
+- **export_as_api**: 将函数导出为策略可用的 API
+- **register_api**: 注册 API 到全局命名空间
+- **api_exc_patch**: API 异常包装装饰器
+
+工作原理
+--------
+
+当 Mod 或核心模块需要向策略暴露 API 时，使用 ``export_as_api`` 装饰器::
+
+    @export_as_api
+    def my_api_function(param):
+        '''自定义 API'''
+        pass
+
+该装饰器会：
+1. 将函数添加到 ``__all__`` 列表
+2. 为函数添加异常处理包装
+3. 将函数注册到全局命名空间
+
+异常处理
+--------
+
+所有通过 ``export_as_api`` 注册的 API 都会自动添加异常处理：
+- 用户代码引发的异常会被标记为 USER_EXC
+- 系统内部异常会被标记为 SYSTEM_EXC
+- TypeError 会检查是否是参数错误
+
+注意事项
+--------
+
+- 这是内部模块，策略开发者通常不需要直接使用
+- API 导出后可通过 ``from rqalpha.api import *`` 导入
+"""
+
 import inspect
 import sys
 from types import FunctionType

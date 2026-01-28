@@ -12,6 +12,66 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+交易费用模块（sys_transaction_cost）
+
+本模块是 RQAlpha 的内置 Mod，提供交易费用（佣金、印花税等）的计算功能。
+
+核心功能
+--------
+
+计算各类交易产生的费用：
+
+- **佣金**: 股票佣金、期货手续费
+- **印花税**: 股票卖出时的印花税
+- **过户费**: 股票过户费（已取消）
+
+费用计算规则
+------------
+
+**股票费用**:
+    - 佣金: 默认万八，最低 5 元
+    - 印花税: 千分之一，仅卖出时收取
+    - 支持使用历史真实税率（pit_tax）
+
+**期货费用**:
+    - 开仓手续费: 按合约规定
+    - 平仓手续费: 按合约规定
+    - 平今手续费: 部分合约有优惠
+
+配置选项
+--------
+
+- ``stock_min_commission``: 股票最小佣金（默认 5 元）
+- ``stock_commission_multiplier``: 股票佣金倍率（默认 1）
+- ``futures_commission_multiplier``: 期货佣金倍率（默认 1）
+- ``tax_multiplier``: 印花税倍率（默认 1）
+- ``pit_tax``: 使用历史真实税率（默认 False）
+
+命令行参数
+----------
+
+- ``-scm, --stock-commission-multiplier``: 股票佣金倍率
+- ``-fcm, --futures-commission-multiplier``: 期货佣金倍率
+- ``-tm, --tax-multiplier``: 印花税倍率
+- ``--pit-tax``: 使用历史税率
+
+使用示例
+--------
+
+命令行::
+
+    rqalpha run -f strategy.py --stock-commission-multiplier 0.5
+
+配置文件::
+
+    mod:
+      sys_transaction_cost:
+        enabled: true
+        stock_commission_multiplier: 0.5
+        tax_multiplier: 1
+"""
+
 import click
 from rqalpha import cli
 

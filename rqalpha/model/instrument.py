@@ -15,6 +15,52 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+合约信息模块
+
+本模块定义了金融合约（Instrument）的数据结构，用于描述股票、期货、ETF 等可交易标的的基本信息。
+
+核心概念
+--------
+
+- **Instrument（合约）**: 代表一个可交易的金融工具
+- **order_book_id**: 合约的唯一标识符，如 '000001.XSHE'（平安银行）
+- **symbol**: 合约的中文简称，如 '平安银行'
+
+合约类型
+--------
+
+RQAlpha 支持以下合约类型：
+
+- **CS（股票）**: 普通股票，如 '000001.XSHE'
+- **ETF**: 交易所交易基金
+- **LOF**: 上市开放式基金
+- **INDX（指数）**: 股票指数，如 '000300.XSHG'（沪深300）
+- **Future（期货）**: 期货合约，如 'IF2012'
+
+使用方式
+--------
+
+通过 API 获取合约信息::
+
+    # 获取单个合约
+    ins = instruments('000001.XSHE')
+    print(ins.symbol)        # 平安银行
+    print(ins.listed_date)   # 上市日期
+    print(ins.type)          # CS
+
+    # 检查合约状态
+    print(ins.listing)       # 是否在交易
+    print(ins.de_listed)     # 是否已退市
+
+注意事项
+--------
+
+- 期货合约有到期日（de_listed_date），到期后不可交易
+- 某些属性仅对特定类型的合约有效（如 contract_multiplier 仅对期货有效）
+- 主力连续合约（如 'IF88'）和指数连续合约（如 'IF99'）是虚拟合约
+"""
+
 import re
 import copy
 from datetime import datetime, time, date
@@ -33,6 +79,36 @@ from rqalpha.utils.class_helper import cached_property
 
 # TODO：改为 namedtuple，提升性能
 class Instrument(metaclass=PropertyReprMeta):
+    """
+    合约对象，表示一个可交易的金融工具
+    
+    合约对象包含了股票、期货、ETF 等金融工具的基本信息，如代码、名称、
+    上市日期、交易所等。这个类是 RQAlpha 中最基础的数据模型之一。
+    
+    合约对象通常通过 ``instruments()`` API 获取，而不是直接创建。
+    
+    Attributes:
+        order_book_id: 合约代码，如 '000001.XSHE'
+        symbol: 合约简称，如 '平安银行'
+        type: 合约类型，如 CS（股票）、Future（期货）
+        exchange: 交易所代码，如 'XSHE'（深交所）
+        listed_date: 上市日期
+        de_listed_date: 退市日期（期货为交割日）
+        round_lot: 最小交易单位（股票为100股）
+        
+    Example:
+        >>> ins = instruments('000001.XSHE')
+        >>> ins.symbol
+        '平安银行'
+        >>> ins.type
+        INSTRUMENT_TYPE.CS
+        >>> ins.listing  # 是否正在交易
+        True
+    
+    Note:
+        - 不同类型的合约具有不同的属性，如 ``contract_multiplier`` 仅对期货有效
+        - 访问不存在的属性会抛出 ``AttributeError``
+    """
     DEFAULT_LISTED_DATE = datetime(1990, 1, 1)
     DEFAULT_DE_LISTED_DATE = datetime(2999, 12, 31)
 

@@ -12,11 +12,85 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+全局变量模块
+
+本模块定义了 GlobalVars 类（即策略中的 g 对象），
+为用户策略提供一个全局变量存储空间。
+
+核心概念
+--------
+
+- **GlobalVars（全局变量）**: 策略中的 g 对象
+
+g 对象 vs context 对象
+-----------------------
+
+g 和 context 都可以存储用户数据，区别在于：
+
+- ``context``: 策略上下文，包含系统属性（如 portfolio）
+- ``g``: 纯粹的全局变量存储，不包含系统属性
+
+推荐使用场景：
+
+- 与回测相关的数据存储在 ``context``
+- 纯粹的全局变量或跨模块共享数据存储在 ``g``
+
+使用方式
+--------
+
+在策略中使用 g::
+
+    from rqalpha.api import g
+    
+    def init(context):
+        # 存储全局变量
+        g.counter = 0
+        g.my_list = []
+        
+    def handle_bar(context, bar_dict):
+        g.counter += 1
+        g.my_list.append(context.now)
+
+状态持久化
+----------
+
+g 对象上的数据支持序列化，用于断点续跑：
+
+- 只有可 pickle 的数据才能被保存
+- 序列化失败的属性会产生警告但不影响运行
+"""
+
 import pickle
 from rqalpha.utils.logger import user_system_log, system_log
 
 
 class GlobalVars(object):
+    """
+    全局变量存储对象（即 g 对象）
+    
+    GlobalVars 为用户提供一个简单的全局变量存储空间。
+    用户可以在 g 对象上存储任意属性，这些属性在整个回测过程中持久存在。
+    
+    与 context 不同，g 对象不包含任何系统预定义的属性，
+    它是一个纯粹的用户数据容器。
+    
+    Example:
+        >>> # 在 init 中初始化全局变量
+        >>> def init(context):
+        ...     g.counter = 0
+        ...     g.data_cache = {}
+        ...
+        >>> # 在 handle_bar 中使用
+        >>> def handle_bar(context, bar_dict):
+        ...     g.counter += 1
+        ...     print(f"这是第 {g.counter} 根 K 线")
+        
+    Note:
+        - 所有属性都支持序列化（用于断点续跑）
+        - 不可 pickle 的对象会产生警告
+        - 建议存储简单的 Python 对象（int, float, list, dict 等）
+    """
     def get_state(self):
         dict_data = {}
         for key, value in self.__dict__.items():

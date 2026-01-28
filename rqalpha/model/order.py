@@ -15,6 +15,72 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+订单模块
+
+本模块定义了订单（Order）及订单样式（OrderStyle）相关的数据结构，
+用于表示和管理交易委托。
+
+核心概念
+--------
+
+- **Order（订单）**: 一个交易委托，记录买卖方向、数量、价格、状态等
+- **OrderStyle（订单样式）**: 订单的类型，如市价单、限价单、算法订单等
+
+订单生命周期
+------------
+
+订单从创建到最终状态的流程::
+
+    PENDING_NEW → ACTIVE → FILLED/CANCELLED/REJECTED
+         │          │
+         │          └→ PENDING_CANCEL → CANCELLED
+         │
+         └→ REJECTED（创建失败）
+
+订单状态说明：
+
+- **PENDING_NEW**: 订单已创建，等待确认
+- **ACTIVE**: 订单已激活，等待成交
+- **FILLED**: 订单全部成交
+- **CANCELLED**: 订单已撤销
+- **REJECTED**: 订单被拒绝
+- **PENDING_CANCEL**: 等待撤销确认
+
+订单类型
+--------
+
+- **MarketOrder（市价单）**: 以当前市场价格立即成交
+- **LimitOrder（限价单）**: 以指定价格或更优价格成交
+- **VWAPOrder（VWAP算法单）**: 按成交量加权平均价格成交
+- **TWAPOrder（TWAP算法单）**: 按时间加权平均价格成交
+
+使用方式
+--------
+
+订单通常通过下单 API 创建::
+
+    # 市价单
+    order = order_shares('000001.XSHE', 1000)
+    
+    # 限价单
+    order = order_shares('000001.XSHE', 1000, price=10.5)
+    # 或
+    order = order_shares('000001.XSHE', 1000, style=LimitOrder(10.5))
+    
+    # 查看订单状态
+    print(order.status)           # ORDER_STATUS.ACTIVE
+    print(order.filled_quantity)  # 已成交数量
+    print(order.unfilled_quantity)  # 未成交数量
+
+注意事项
+--------
+
+- 订单对象的属性是只读的
+- 订单 ID 在整个回测过程中是唯一的
+- 期货订单有 position_effect（开平标志）属性
+"""
+
 import time
 from decimal import Decimal
 
@@ -33,6 +99,43 @@ from rqalpha.utils.class_helper import cached_property
 
 
 class Order(object):
+    """
+    订单对象，表示一个交易委托
+    
+    订单对象记录了一次交易委托的全部信息，包括标的、方向、数量、价格、
+    状态等。订单是连接策略逻辑和交易执行的核心数据结构。
+    
+    订单对象通过下单 API（如 ``order_shares``）创建，不应直接实例化。
+    
+    Attributes:
+        order_id (int): 订单唯一标识符
+        order_book_id (str): 合约代码
+        side (SIDE): 买卖方向，BUY 或 SELL
+        quantity (int): 委托数量
+        filled_quantity (int): 已成交数量
+        unfilled_quantity (int): 未成交数量
+        price (float): 委托价格（限价单有效）
+        avg_price (float): 成交均价
+        status (ORDER_STATUS): 订单状态
+        type (ORDER_TYPE): 订单类型（市价/限价/算法）
+        datetime (datetime): 订单创建时间
+        transaction_cost (float): 交易费用
+        message (str): 订单消息（如拒单原因）
+        
+    Example:
+        >>> order = order_shares('000001.XSHE', 1000)
+        >>> order.order_id
+        16093847561234
+        >>> order.status
+        ORDER_STATUS.ACTIVE
+        >>> order.is_final()  # 订单是否已结束
+        False
+        
+    Note:
+        - 期货订单额外有 ``position_effect`` 属性表示开平方向
+        - ``frozen_price`` 是下单时冻结资金使用的价格
+        - 算法订单（VWAP/TWAP）的实际成交价格由算法决定
+    """
 
     order_id_gen = id_gen(int(time.time()) * 10000)
 
@@ -375,11 +478,34 @@ class Order(object):
 
 
 class OrderStyle(object):
+    """
+    订单样式基类
+    
+    订单样式定义了订单的执行方式，如市价成交、限价成交或算法成交。
+    这是一个抽象基类，不应直接使用。
+    
+    子类:
+        - MarketOrder: 市价单
+        - LimitOrder: 限价单
+        - VWAPOrder: 成交量加权平均价格算法单
+        - TWAPOrder: 时间加权平均价格算法单
+    """
     def get_limit_price(self):
+        """获取限价，市价单返回 None"""
         raise NotImplementedError
 
 
 class AlgoOrder(OrderStyle):
+    """
+    算法订单基类
+    
+    算法订单会在指定的时间段内，按照特定算法拆分成多个小订单执行，
+    以减少市场冲击成本。
+    
+    Attributes:
+        start_min (int): 算法执行开始时间（分钟）
+        end_min (int): 算法执行结束时间（分钟）
+    """
     __repr__ = ORDER_TYPE.ALGO.__repr__  # type: ignore
 
     def __init__(self, start_min, end_min):
@@ -391,16 +517,54 @@ class AlgoOrder(OrderStyle):
 
 
 class TWAPOrder(AlgoOrder):
+    """
+    TWAP（时间加权平均价格）算法订单
+    
+    订单会在指定时间段内均匀拆分执行，成交价格接近该时间段的
+    时间加权平均价格。适合需要平滑执行的大单。
+    
+    Example:
+        >>> # 在开盘后30分钟到60分钟之间执行
+        >>> order = order_shares('000001.XSHE', 10000, style=TWAPOrder(30, 60))
+    """
     TYPE = ALGO.TWAP
     __repr__ = ALGO.TWAP.__repr__
 
 
 class VWAPOrder(AlgoOrder):
+    """
+    VWAP（成交量加权平均价格）算法订单
+    
+    订单会在指定时间段内按照历史成交量分布拆分执行，成交价格
+    接近该时间段的成交量加权平均价格。适合跟踪市场节奏的大单。
+    
+    Example:
+        >>> # 在开盘后30分钟到60分钟之间执行
+        >>> order = order_shares('000001.XSHE', 10000, style=VWAPOrder(30, 60))
+    """
     TYPE = ALGO.VWAP
     __repr__ = ALGO.VWAP.__repr__
 
 
 class MarketOrder(OrderStyle):
+    """
+    市价单
+    
+    以当前市场最优价格立即成交的订单。在回测中，市价单通常以
+    当前 Bar 的收盘价或下一个 Bar 的开盘价成交（取决于配置）。
+    
+    优点:
+        - 成交确定性高
+        - 执行速度快
+        
+    缺点:
+        - 可能有较大滑点
+        - 涨跌停时可能无法成交
+        
+    Example:
+        >>> order = order_shares('000001.XSHE', 1000)  # 默认市价单
+        >>> order = order_shares('000001.XSHE', 1000, style=MarketOrder())
+    """
     __repr__ = ORDER_TYPE.MARKET.__repr__  # type: ignore
 
     def get_limit_price(self):
@@ -411,6 +575,29 @@ class MarketOrder(OrderStyle):
 
 
 class LimitOrder(OrderStyle):
+    """
+    限价单
+    
+    以指定价格或更优价格成交的订单。买入时，只有当市场价格低于或
+    等于限价时才会成交；卖出时，只有当市场价格高于或等于限价时才会成交。
+    
+    Attributes:
+        limit_price (float): 限定价格
+        
+    优点:
+        - 可以控制成交价格
+        - 避免不利价格成交
+        
+    缺点:
+        - 可能无法成交
+        - 在快速变动的市场中可能错过机会
+        
+    Example:
+        >>> # 以 10.5 元的价格买入
+        >>> order = order_shares('000001.XSHE', 1000, price=10.5)
+        >>> # 或者
+        >>> order = order_shares('000001.XSHE', 1000, style=LimitOrder(10.5))
+    """
     __repr__ = ORDER_TYPE.LIMIT.__repr__  # type: ignore
 
     def __init__(self, limit_price):

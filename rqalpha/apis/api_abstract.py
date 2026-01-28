@@ -15,6 +15,46 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+抽象交易 API 模块
+
+本模块定义了通用的交易 API 接口（抽象层），这些 API 会根据合约类型（股票/期货/期权）
+自动分发到对应的具体实现。
+
+核心特性
+--------
+
+- **类型分发**: 使用 ``instype_singledispatch`` 装饰器实现按合约类型的函数分发
+- **统一接口**: 提供股票和期货的统一交易接口
+- **参数验证**: 使用 ``apply_rules`` 装饰器进行参数校验
+
+股票交易 API
+------------
+
+- ``order_shares``: 按股数买卖
+- ``order_value``: 按金额买卖
+- ``order_percent``: 按组合比例买卖
+- ``order_target_value``: 调仓到目标金额
+- ``order_target_percent``: 调仓到目标比例
+
+期货交易 API
+------------
+
+- ``buy_open``: 买入开仓
+- ``buy_close``: 买入平仓
+- ``sell_open``: 卖出开仓
+- ``sell_close``: 卖出平仓
+- ``order``: 智能调仓（按数量）
+- ``order_to``: 智能调仓（到目标仓位）
+
+注意事项
+--------
+
+- 这些函数是抽象接口，实际实现在 ``rqalpha_mod_sys_accounts`` 模块中
+- 股票和期货的实现逻辑不同，但调用方式统一
+- ``price_or_style`` 参数支持数值（限价）和 OrderStyle 对象
+"""
+
 from typing import Union, Optional, List, Tuple
 
 from rqalpha.api import export_as_api

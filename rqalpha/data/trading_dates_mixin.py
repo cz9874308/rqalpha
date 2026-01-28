@@ -15,6 +15,57 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+交易日历混入类模块
+
+本模块定义了 TradingDatesMixin 类，提供交易日历相关的功能，
+可被 DataProxy 等类混入使用。
+
+核心概念
+--------
+
+- **交易日历**: 定义哪些日期是交易日
+- **交易日时间**: 对于期货夜盘，一个交易日可能跨越两个自然日
+
+主要功能
+--------
+
+**交易日查询**:
+    - ``get_trading_dates(start, end)``: 获取范围内的交易日
+    - ``is_trading_date(date)``: 判断是否为交易日
+    - ``get_previous_trading_date(date, n)``: 获取前第 n 个交易日
+    - ``get_next_trading_date(date, n)``: 获取后第 n 个交易日
+    - ``count_trading_dates(start, end)``: 计算交易日数量
+
+**期货交易日**:
+    - ``get_trading_dt(calendar_dt)``: 将日历时间转换为交易日时间
+    - ``get_future_trading_date(dt)``: 获取期货交易日
+
+期货夜盘时间规则
+----------------
+
+期货夜盘的交易日归属规则：
+
+- 20:00 之前属于当日交易日
+- 20:00 之后属于下一个交易日
+- 凌晨 04:00 之前的时间仍属于前一自然日的交易日
+
+例如：1月15日 21:00 属于 1月16日 的交易日
+
+使用方式
+--------
+
+通常通过 DataProxy 使用::
+
+    data_proxy = env.data_proxy
+    
+    # 获取交易日
+    dates = data_proxy.get_trading_dates('2020-01-01', '2020-12-31')
+    
+    # 获取前一交易日
+    prev = data_proxy.get_previous_trading_date(today)
+"""
+
 import datetime
 from typing import Dict, Optional, Union
 

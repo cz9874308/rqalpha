@@ -15,6 +15,58 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+工具函数模块
+
+本模块提供了 RQAlpha 中常用的工具函数和辅助类。
+
+核心组件
+--------
+
+**RqAttrDict**:
+    支持属性访问的字典类，用于配置管理
+
+**工具函数**:
+    - ``id_gen()``: ID 生成器
+    - ``is_valid_price()``: 检查价格有效性
+    - ``get_position_direction()``: 根据方向和开平获取持仓方向
+    - ``merge_trading_period()``: 合并重叠的交易时段
+    - ``is_trading()``: 检查时间是否在交易时段内
+
+**常量**:
+    - ``INST_TYPE_IN_STOCK_ACCOUNT``: 股票账户支持的合约类型
+    - ``STOCK_TRADING_PERIOD``: A股交易时段
+    - ``RQDATAC_DEFAULT_ADDRESS``: RQDatac 默认地址
+
+子模块
+------
+
+- ``datetime_func``: 日期时间处理函数
+- ``exception``: 自定义异常类
+- ``logger``: 日志工具
+- ``functools``: 函数工具（如 lru_cache）
+- ``i18n``: 国际化支持
+- ``config``: 配置管理
+- ``arg_checker``: 参数检查装饰器
+- ``typing``: 类型定义
+
+使用方式
+--------
+
+::
+
+    from rqalpha.utils import RqAttrDict, is_valid_price
+    
+    # 使用属性访问字典
+    config = RqAttrDict({'base': {'start_date': '2020-01-01'}})
+    print(config.base.start_date)
+    
+    # 检查价格
+    if is_valid_price(price):
+        # 处理有效价格
+        pass
+"""
+
 from __future__ import division
 import pprint
 import os

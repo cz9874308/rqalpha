@@ -15,6 +15,68 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+账户模块
+
+本模块定义了 Account 类，用于管理单一账户类型的资金和持仓。
+
+核心概念
+--------
+
+- **Account（账户）**: 资金和持仓的管理容器
+- **账户类型**: 股票账户（STOCK）、期货账户（FUTURE）
+
+账户职责
+--------
+
+Account 负责以下功能：
+
+1. **资金管理**: 跟踪现金、冻结资金、保证金等
+2. **持仓管理**: 管理账户下所有合约的持仓
+3. **成交处理**: 处理订单成交，更新持仓和资金
+4. **结算处理**: 每日结算，处理分红、到期等
+
+主要属性
+--------
+
+**资金相关**:
+    - ``cash``: 可用资金
+    - ``frozen_cash``: 冻结资金（用于待成交订单）
+    - ``total_cash``: 总现金（含冻结）
+    - ``margin``: 保证金（期货账户）
+
+**持仓相关**:
+    - ``positions``: 持仓字典
+    - ``market_value``: 持仓市值
+    - ``total_value``: 账户总权益
+
+**盈亏相关**:
+    - ``daily_pnl``: 当日盈亏
+    - ``trading_pnl``: 交易盈亏
+    - ``position_pnl``: 持仓盈亏
+    - ``transaction_cost``: 交易费用
+
+事件订阅
+--------
+
+Account 订阅以下事件：
+
+- ``TRADE``: 成交事件，更新持仓和资金
+- ``ORDER_PENDING_NEW``: 新订单，冻结资金
+- ``ORDER_CANCELLATION_PASS``: 撤单成功，解冻资金
+- ``SETTLEMENT``: 结算事件，处理每日结算
+
+使用方式
+--------
+
+通常通过 Portfolio 或 context 访问::
+
+    # 通过 context
+    stock_account = context.stock_account
+    print(f"可用资金: {stock_account.cash}")
+    print(f"持仓市值: {stock_account.market_value}")
+"""
+
 from itertools import chain
 from datetime import date
 from typing import Callable, Dict, Iterable, List, Optional, Union, Tuple

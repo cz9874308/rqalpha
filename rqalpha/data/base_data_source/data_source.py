@@ -14,6 +14,60 @@
 #         否则米筐科技有权追究相应的知识产权侵权责任。
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
+
+"""
+基础数据源实现模块
+
+本模块提供了 RQAlpha 默认的数据源实现 BaseDataSource，
+它从本地数据包（bundle）读取行情数据、合约信息等。
+
+核心概念
+--------
+
+- **BaseDataSource**: 默认数据源，实现 AbstractDataSource 接口
+- **BaseDataSourceProtocol**: 数据源扩展协议
+- **Storage 组件**: 各类数据的存储抽象
+
+数据存储架构
+------------
+
+BaseDataSource 使用多种 Storage 组件管理不同类型的数据::
+
+    BaseDataSource
+        ├─ _instruments_store      # 合约信息
+        ├─ _day_bars               # 日线数据 {(type, market): Store}
+        ├─ _dividends              # 分红数据
+        ├─ _splits                 # 拆股数据
+        ├─ _trading_calendars_store # 交易日历
+        └─ _yield_curve_store      # 收益率曲线
+
+数据注册机制
+------------
+
+BaseDataSource 支持动态注册新的数据存储::
+
+    # 注册新的日线数据存储
+    data_source.register_day_bar_store(INSTRUMENT_TYPE.OPTION, my_store)
+    
+    # 注册新的合约
+    data_source.register_instruments(my_instruments)
+
+K线数据重采样
+-------------
+
+支持将分钟线重采样为其他周期::
+
+    - 1分钟 → 5分钟、15分钟、30分钟、60分钟
+    - 使用 OHLCV 规则聚合（开高低收量）
+
+注意事项
+--------
+
+- 默认数据路径为 ~/.rqalpha/bundle/
+- 数据文件格式为自定义的二进制格式
+- 支持前复权和后复权的自动计算
+"""
+
 from collections import defaultdict, ChainMap
 import os
 from datetime import date, datetime, timedelta

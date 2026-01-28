@@ -12,6 +12,56 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+系统账户模块（sys_accounts）
+
+本模块是 RQAlpha 的核心内置 Mod，提供账户管理、持仓管理和交易 API 的实现。
+
+核心功能
+--------
+
+1. **股票 API 实现**: order_shares, order_value, order_percent 等
+2. **期货 API 实现**: buy_open, sell_close, buy_close, sell_open 等
+3. **持仓模型**: StockPosition, FuturePosition
+4. **订单验证**: 仓位检查、资金检查、T+1 限制等
+
+配置选项
+--------
+
+- ``stock_t1``: 是否开启股票 T+1 限制（默认 True）
+- ``dividend_reinvestment``: 是否开启自动分红再投资（默认 False）
+- ``dividend_tax_rate``: 红利税率（默认 0.0）
+- ``cash_return_by_stock_delisted``: 退市时是否返还现金（默认 True）
+- ``auto_switch_order_value``: 资金不足时使用全部剩余资金（默认 False）
+- ``validate_stock_position``: 检查股票仓位（默认 True）
+- ``validate_future_position``: 检查期货仓位（默认 True）
+- ``financing_rate``: 融资利率（默认 0.0）
+- ``futures_settlement_price_type``: 期货结算价类型，settlement 或 close
+
+命令行参数
+----------
+
+- ``--stock-t1/--no-stock-t1``: 开启/关闭股票 T+1
+- ``--dividend-reinvestment``: 开启分红再投资
+- ``--no-short-stock/--short-stock``: 禁止/允许股票做空
+- ``--futures-settlement-price-type``: 期货结算价类型
+
+使用示例
+--------
+
+配置文件::
+
+    mod:
+      sys_accounts:
+        enabled: true
+        stock_t1: true
+        dividend_reinvestment: false
+
+命令行::
+
+    rqalpha run -f strategy.py --no-stock-t1
+"""
+
 import click
 from rqalpha import cli
 

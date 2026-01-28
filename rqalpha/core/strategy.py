@@ -15,6 +15,58 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+策略模块
+
+本模块定义了 Strategy 类，它是用户策略代码的包装器，
+负责管理策略的生命周期和事件处理。
+
+核心概念
+--------
+
+- **Strategy**: 用户策略的包装器，连接用户代码和事件系统
+- **生命周期方法**: init, before_trading, handle_bar, handle_tick, after_trading
+- **ExecutionContext**: 执行上下文，标记当前所处的执行阶段
+
+策略生命周期
+------------
+
+用户策略包含以下可选的生命周期方法：
+
+1. **init(context)**: 初始化，只在回测开始时调用一次
+2. **before_trading(context)**: 每个交易日开盘前调用
+3. **open_auction(context, bar_dict)**: 集合竞价阶段调用
+4. **handle_bar(context, bar_dict)**: 每根K线触发调用
+5. **handle_tick(context, tick)**: 每个Tick触发调用
+6. **after_trading(context)**: 每个交易日收盘后调用
+
+事件订阅
+--------
+
+Strategy 在初始化时自动将用户定义的方法订阅到相应事件::
+
+    如果定义了 handle_bar  →  订阅 EVENT.BAR
+    如果定义了 handle_tick →  订阅 EVENT.TICK
+    ...
+
+异常处理
+--------
+
+所有用户代码都被包装在异常处理中：
+
+- 用户代码异常会被标记为 USER_EXC
+- 系统内部异常会被标记为 SYSTEM_EXC
+
+这样便于区分错误来源和生成有意义的错误信息。
+
+注意事项
+--------
+
+- 策略暂停时（is_hold=True）不会触发用户回调
+- before_trading 的旧签名（带 bar_dict 参数）已废弃
+- 用户可通过 subscribe_event 订阅自定义事件处理器
+"""
+
 from functools import wraps
 
 from rqalpha.core.events import EVENT, Event
@@ -39,6 +91,40 @@ def run_when_strategy_not_hold(func):
 
 
 class Strategy(object):
+    """
+    策略包装器，管理用户策略的生命周期和事件处理
+    
+    Strategy 类将用户编写的策略函数包装起来，自动订阅相应的事件，
+    并在事件触发时调用用户代码。它负责设置正确的执行上下文和异常处理。
+    
+    Attributes:
+        _user_context: 用户上下文对象（即 context）
+        _init: 用户定义的 init 函数
+        _before_trading: 用户定义的 before_trading 函数
+        _handle_bar: 用户定义的 handle_bar 函数
+        _handle_tick: 用户定义的 handle_tick 函数
+        _open_auction: 用户定义的 open_auction 函数
+        _after_trading: 用户定义的 after_trading 函数
+        
+    Example:
+        用户策略文件::
+        
+            def init(context):
+                context.s1 = '000001.XSHE'
+                
+            def handle_bar(context, bar_dict):
+                order_shares(context.s1, 1000)
+        
+        系统内部创建 Strategy::
+        
+            scope = {'init': init, 'handle_bar': handle_bar}
+            strategy = Strategy(event_bus, scope, context)
+            strategy.init()  # 调用用户 init
+            
+    Note:
+        - 如果策略被暂停（config.extra.is_hold=True），回调不会执行
+        - 所有用户代码都在 try-except 中执行，异常会被标记类型
+    """
     def __init__(self, event_bus, scope, ucontext):
         self._user_context = ucontext
         self._current_universe = set()

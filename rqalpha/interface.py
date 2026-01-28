@@ -15,6 +15,68 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+接口定义模块
+
+本模块定义了 RQAlpha 的核心抽象接口，用于扩展和定制系统功能。
+
+核心接口
+--------
+
+**AbstractPosition**:
+    持仓接口，定义持仓对象需要实现的方法
+
+**AbstractBroker**:
+    券商接口，负责订单提交和成交处理
+
+**AbstractMod**:
+    模块接口，定义 Mod 的生命周期方法
+
+**AbstractDataSource**:
+    数据源接口，提供历史数据和合约信息
+
+**AbstractEventSource**:
+    事件源接口，生成回测时间线事件
+
+**AbstractPriceBoard**:
+    价格板接口，提供实时/最新价格
+
+**AbstractFrontendValidator**:
+    前端验证器接口，订单提交前的验证
+
+接口实现说明
+------------
+
+要扩展 RQAlpha 功能，需要实现对应的接口：
+
+1. 实现接口中的抽象方法
+2. 在 Mod 的 start_up 中注册实现
+3. 系统会自动调用接口方法
+
+示例::
+
+    class MyDataSource(AbstractDataSource):
+        def get_trading_calendars(self):
+            # 返回交易日历
+            pass
+        
+        def get_instruments(self, id_or_syms=None, types=None):
+            # 返回合约信息
+            pass
+        
+        # ... 实现其他抽象方法
+
+使用方式
+--------
+
+在 Mod 中注册自定义实现::
+
+    class MyMod(AbstractMod):
+        def start_up(self, env, mod_config):
+            env.set_data_source(MyDataSource())
+            env.set_broker(MyBroker())
+"""
+
 import abc
 from datetime import datetime, date
 from typing import Any, Union, Optional, Iterable, Dict, List, Sequence, TYPE_CHECKING, NamedTuple

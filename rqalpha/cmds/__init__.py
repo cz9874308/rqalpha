@@ -13,6 +13,59 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+命令行接口模块
+
+本模块提供了 RQAlpha 的命令行工具（CLI）实现。
+
+核心命令
+--------
+
+- ``rqalpha run``: 运行回测
+- ``rqalpha update_bundle``: 更新数据包
+- ``rqalpha mod``: 管理 Mod
+- ``rqalpha plot``: 绘制收益图
+- ``rqalpha report``: 生成报告
+
+子模块
+------
+
+- ``entry.py``: CLI 入口点定义
+- ``run.py``: run 命令实现
+- ``bundle.py``: 数据包更新命令
+- ``mod.py``: Mod 管理命令
+- ``misc.py``: 其他辅助命令
+
+命令扩展
+--------
+
+Mod 可以通过以下方式扩展 CLI::
+
+    from rqalpha import cli, inject_run_param
+    
+    # 添加 run 命令参数
+    inject_run_param(click.Option(...))
+    
+    # 添加新命令
+    @cli.command()
+    def my_command():
+        pass
+
+使用示例
+--------
+
+::
+
+    # 运行回测
+    rqalpha run -f strategy.py -s 2020-01-01 -e 2020-12-31
+    
+    # 更新数据包
+    rqalpha update_bundle
+    
+    # 查看 Mod
+    rqalpha mod list
+"""
+
 from . import bundle
 from . import mod
 from . import run

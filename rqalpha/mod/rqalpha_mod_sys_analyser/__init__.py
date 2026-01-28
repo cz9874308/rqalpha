@@ -15,6 +15,58 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+策略分析模块（sys_analyser）
+
+本模块是 RQAlpha 的核心内置 Mod，提供回测结果的收集、分析和展示功能。
+
+核心功能
+--------
+
+1. **数据收集**: 每日净值、持仓、成交流水等
+2. **风险分析**: 计算各类风险指标（夏普比率、最大回撤等）
+3. **报告生成**: 输出 CSV/Excel 格式的回测报告
+4. **图表绘制**: 绘制收益曲线、回撤等图表
+
+风险指标
+--------
+
+模块计算的主要风险指标包括：
+
+- 年化收益率
+- 夏普比率（Sharpe Ratio）
+- 最大回撤（Max Drawdown）
+- 索提诺比率（Sortino Ratio）
+- 信息比率（Information Ratio）
+- 阿尔法、贝塔
+
+配置选项
+--------
+
+- ``benchmark``: 策略基准（如 "000300.XSHG"）
+- ``record``: 是否记录数据
+- ``strategy_name``: 策略名称
+- ``output_file``: 输出文件路径（pickle格式）
+- ``report_save_path``: 报告保存路径
+- ``plot``: 是否绘制图表
+- ``plot_save_file``: 图表保存路径
+- ``plot_config``: 图表配置
+
+命令行参数
+----------
+
+- ``--report``: 保存报告
+- ``-o, --output-file``: 输出结果文件
+- ``-p, --plot``: 绘制图表
+- ``--plot-save``: 保存图表到文件
+- ``-bm, --benchmark``: 设置基准
+
+CLI 命令
+--------
+
+- ``rqalpha plot``: 从结果文件绘制图表
+- ``rqalpha report``: 从结果文件生成报告
+"""
 
 import click
 

@@ -15,6 +15,59 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+合约信息混入类模块
+
+本模块定义了 InstrumentsMixin 类，提供合约信息查询功能，
+可被 DataProxy 等类混入使用。
+
+核心概念
+--------
+
+- **Instrument（合约）**: 可交易的金融工具
+- **order_book_id**: 合约的唯一标识符
+- **合约复用**: 同一代码可能对应多个历史合约（如港股代码复用）
+
+主要功能
+--------
+
+**合约查询**:
+    - ``get_active_instrument(id, dt)``: 获取指定时间上市的合约
+    - ``get_instrument_history(id)``: 获取合约历史（含已退市）
+    - ``get_all_instruments(types, dt)``: 获取所有指定类型的合约
+    - ``assure_order_book_id(id)``: 确保返回有效的 order_book_id
+
+**批量查询**:
+    - ``get_active_instruments(ids, dt)``: 批量获取上市合约
+    - ``get_instruments_history(ids)``: 批量获取合约历史
+
+废弃的 API
+----------
+
+以下 API 已废弃，请使用新 API：
+
+- ``instrument()`` → ``get_instrument_history()``
+- ``instruments()`` → ``get_instruments_history()``
+- ``all_instruments()`` → ``get_all_instruments()``
+- ``instrument_not_none()`` → ``get_active_instrument()``
+
+废弃原因：旧 API 假设 order_book_id 唯一对应一个合约，
+但实际存在代码复用情况。新 API 统一了命名规则。
+
+使用方式
+--------
+
+通常通过 DataProxy 使用::
+
+    data_proxy = env.data_proxy
+    
+    # 获取当前上市的合约
+    ins = data_proxy.get_active_instrument('000001.XSHE', trading_dt)
+    
+    # 获取合约历史
+    history = data_proxy.get_instrument_history('000001.XSHE')
+"""
+
 from typing import List, Optional, Iterable, Dict, Union
 from datetime import datetime
 

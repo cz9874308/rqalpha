@@ -15,6 +15,70 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+策略上下文模块
+
+本模块定义了 StrategyContext 类（即策略中的 context 对象），
+为用户策略提供访问系统状态和存储自定义数据的接口。
+
+核心概念
+--------
+
+- **StrategyContext**: 策略上下文，即 context 对象
+- **RunInfo**: 策略运行配置信息
+- **GlobalVars**: 全局变量存储（即 g 对象）
+
+context 对象
+------------
+
+context 是用户策略中最常用的对象之一，它提供：
+
+**系统属性**:
+    - ``portfolio``: 投资组合，包含账户和持仓信息
+    - ``stock_account``: 股票账户
+    - ``future_account``: 期货账户
+    - ``universe``: 当前股票池
+    - ``now``: 当前时间
+    - ``run_info``: 运行配置信息
+
+**自定义属性**:
+    用户可以在 context 上存储任意数据::
+    
+        def init(context):
+            context.s1 = '000001.XSHE'
+            context.ma_periods = 20
+
+使用方式
+--------
+
+在策略中使用 context::
+
+    def init(context):
+        # 存储自定义数据
+        context.stocks = ['000001.XSHE', '600000.XSHG']
+        
+    def handle_bar(context, bar_dict):
+        # 访问投资组合
+        print(context.portfolio.total_value)
+        
+        # 访问持仓
+        for pos in context.portfolio.positions.values():
+            print(pos.quantity)
+        
+        # 访问自定义数据
+        for stock in context.stocks:
+            order_shares(stock, 100)
+
+状态持久化
+----------
+
+context 上的自定义数据支持序列化，用于断点续跑。
+但注意：
+
+- 只有可 pickle 的数据才能被保存
+- 以下划线开头的属性不会被保存
+"""
+
 import pickle
 from datetime import datetime, date
 from typing import Set

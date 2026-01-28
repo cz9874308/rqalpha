@@ -14,6 +14,79 @@
 #         否则米筐科技有权追究相应的知识产权侵权责任。
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
+
+"""
+基础交易与数据 API 模块
+
+本模块提供了 RQAlpha 最核心的策略 API，包括下单、撤单、查询持仓、获取历史数据等功能。
+
+API 分类
+--------
+
+**交易 API**:
+    - ``order_shares``: 按股数下单
+    - ``order_value``: 按金额下单
+    - ``order_percent``: 按资产比例下单
+    - ``order_target_value``: 调仓到目标金额
+    - ``order_target_percent``: 调仓到目标比例
+    - ``submit_order``: 底层下单接口
+    - ``cancel_order``: 撤销订单
+    
+**查询 API**:
+    - ``get_open_orders``: 获取未成交订单
+    - ``get_orders``: 获取所有订单
+    - ``get_trades``: 获取成交记录
+    - ``get_position``: 获取持仓
+    - ``get_positions``: 获取所有持仓
+    
+**数据 API**:
+    - ``history_bars``: 获取历史 K 线
+    - ``current_snapshot``: 获取当前快照
+    - ``instruments``: 获取合约信息
+    - ``all_instruments``: 获取所有合约
+    - ``is_suspended``: 判断是否停牌
+    - ``is_st_stock``: 判断是否 ST
+    
+**工具 API**:
+    - ``update_universe``: 更新股票池
+    - ``subscribe``: 订阅行情
+    - ``unsubscribe``: 取消订阅
+
+使用示例
+--------
+
+基本下单::
+
+    def handle_bar(context, bar_dict):
+        # 按股数下单
+        order_shares('000001.XSHE', 1000)
+        
+        # 限价单
+        order_shares('000001.XSHE', 1000, price=10.5)
+        
+        # 按金额下单
+        order_value('000001.XSHE', 10000)
+        
+        # 调仓到目标比例
+        order_target_percent('000001.XSHE', 0.1)
+
+查询历史数据::
+
+    def handle_bar(context, bar_dict):
+        # 获取最近 10 根日 K 线的收盘价
+        prices = history_bars('000001.XSHE', 10, '1d', 'close')
+        
+        # 计算均价
+        ma10 = prices.mean()
+
+注意事项
+--------
+
+- 大部分 API 只能在特定执行阶段调用
+- 下单 API 在 ``before_trading`` 阶段不可用
+- 某些 API 需要启用相应的 Mod 才能使用
+"""
+
 from __future__ import division
 
 import types

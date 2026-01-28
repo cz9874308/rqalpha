@@ -15,6 +15,51 @@
 #         在此前提下，对本软件的使用同样需要遵守 Apache 2.0 许可，Apache 2.0 许可与本许可冲突之处，以本许可为准。
 #         详细的授权流程，请联系 public@ricequant.com 获取。
 
+"""
+风险控制模块（sys_risk）
+
+本模块是 RQAlpha 的内置 Mod，提供订单前端验证和风控检查功能。
+
+核心功能
+--------
+
+在订单提交前进行各类风控检查：
+
+1. **价格验证**: 检查限价单价格是否合法
+2. **交易状态检查**: 检查标的是否可交易
+3. **资金检查**: 检查可用资金是否充足
+4. **自成交检查**: 检查是否存在自成交风险
+
+验证器类型
+----------
+
+- ``PriceValidator``: 价格合法性验证
+- ``IsTradingValidator``: 交易状态验证
+- ``CashValidator``: 资金充足性验证
+- ``SelfTradeValidator``: 自成交风险验证
+
+配置选项
+--------
+
+- ``validate_price``: 开启价格验证（默认 True）
+- ``validate_is_trading``: 开启交易状态验证（默认 True）
+- ``validate_cash``: 开启资金验证（默认 True）
+- ``validate_self_trade``: 开启自成交检查（默认 False）
+
+命令行参数
+----------
+
+- ``--cash-validation/--no-cash-validation``: 开启/关闭资金验证
+
+验证失败处理
+------------
+
+当订单验证失败时：
+
+- 订单状态变为 REJECTED
+- 记录拒绝原因到日志
+- 触发 ORDER_CREATION_REJECT 事件
+"""
 
 import click
 from rqalpha import cli
